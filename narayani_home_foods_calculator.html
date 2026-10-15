@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NARAYANI HOME FOODS – Ingredient Costing Calculator</title>
+<style>
+:root{--green:#1e3d2b;--green2:#2c5a40;--cream:#f7f1e1;--white:#fff;--gold:#b48a2e;--ink:#22302a;--line:#dccfae;--bad:#a8281c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--cream);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,sans-serif}
+header{background:var(--green);color:var(--cream);padding:22px 20px;border-bottom:4px solid var(--gold);text-align:center}
+header h1{margin:0;font:700 clamp(24px,5vw,40px) Georgia,serif;letter-spacing:.06em}
+header p{margin:4px 0 0;color:#e2cf9b}
+main{max-width:1100px;margin:0 auto;padding:18px 14px 40px}
+section{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:18px}
+h2{margin:0 0 12px;font:700 20px Georgia,serif;color:var(--green)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+label{display:block;font-weight:600;font-size:13px;margin-bottom:3px}
+input[type=text],input[type=number]{width:100%;padding:8px;border:1px solid #bfb393;border-radius:6px;font:inherit;background:#fffdf7}
+input:focus,button:focus-visible{outline:3px solid var(--gold);outline-offset:1px}
+input[readonly]{background:#eef3ee;font-weight:600}
+input.bad{border-color:var(--bad);background:#fdeceb}
+.hint{font-size:12px;color:#5b6b61;margin-top:2px}
+.mode{display:flex;gap:18px;flex-wrap:wrap;margin:12px 0 4px}
+.mode label{font-weight:500;display:flex;gap:6px;align-items:center;margin:0}
+.banner{background:#f3ead0;border-left:4px solid var(--gold);padding:8px 12px;margin-top:10px;border-radius:4px}
+#err{color:var(--bad);font-weight:600;min-height:20px;margin-top:8px}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+button{border:0;border-radius:6px;padding:9px 16px;font:600 14px inherit;cursor:pointer;background:var(--green);color:#fff}
+button:hover{background:var(--green2)}
+button.alt{background:var(--gold)}button.alt:hover{background:#9a7421}
+button.ghost{background:#fff;color:var(--green);border:1px solid var(--green)}
+button.x{padding:6px 10px;background:#fff;color:var(--bad);border:1px solid var(--bad)}
+.wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:760px}
+th{background:var(--green);color:var(--cream);padding:9px 8px;font-size:13px;text-align:left}
+th.n,td.n{text-align:right}
+td{padding:6px;border-bottom:1px solid var(--line)}
+td input{text-align:inherit}td.n input{text-align:right}
+tfoot td{font-weight:700;background:#f3ead0;padding:9px 8px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.card{border:1px solid var(--line);border-top:4px solid var(--gold);border-radius:8px;padding:10px 12px;background:#fffdf7}
+.card .k{font-size:12px;color:#5b6b61}
+.card .v{font:700 22px Georgia,serif;color:var(--green);overflow-wrap:anywhere}
+.card.hi{background:var(--green);border-top-color:var(--gold)}.card.hi .k{color:#e2cf9b}.card.hi .v{color:#fff}
+.formulas{font-size:13px;color:#4b5b52;margin:8px 0 0;padding-left:18px}
+@media print{
+ body{background:#fff}.btns,.noprint,#err,.hint{display:none!important}
+ section{border:0;padding:0;break-inside:avoid}header{background:#fff;color:#000;border-bottom:2px solid #000}header p{color:#000}
+ th{background:#ddd!important;color:#000}input{border:0!important;background:none!important;padding:0}
+ table{min-width:0}.card{break-inside:avoid}.card.hi{background:#eee;border-top-color:#000}.card.hi .k,.card.hi .v{color:#000}
+}
+</style>
+</head>
+<body>
+<header>
+ <h1>NARAYANI HOME FOODS</h1>
+ <p>Ingredient Costing &amp; Production Calculator</p>
+</header>
+<main>
+
+<section aria-labelledby="h-set">
+ <h2 id="h-set">Production settings</h2>
+ <div class="grid">
+  <div><label for="name">Recipe name</label><input type="text" id="name"></div>
+  <div><label for="fin">Finished weight per product (g)</label><input type="number" id="fin" min="0" step="any"></div>
+  <div><label for="loss">Processing loss (%)</label><input type="number" id="loss" min="0" max="100" step="any"></div>
+  <div><label for="pkg">Packaging cost per product (₹)</label><input type="number" id="pkg" min="0" step="any"></div>
+  <div><label for="other">Other production expenses (₹)</label><input type="number" id="other" min="0" step="any"></div>
+ </div>
+ <div id="err" role="alert"></div>
+</section>
+
+<section aria-labelledby="h-ing">
+ <h2 id="h-ing">Ingredients</h2>
+ <div class="wrap"><table>
+  <thead><tr><th>S.No.</th><th>Ingredients</th><th class="n">Required Measurement of Ingredient (g)</th><th class="n">Per KG Rate (₹)</th><th class="n">Required Ingredient Cost (₹)</th><th class="noprint"><span class="sr">Remove</span></th></tr></thead>
+  <tbody id="rows"></tbody>
+  <tfoot><tr><td colspan="2">Total</td><td class="n" id="tW"></td><td class="n" id="tR"></td><td class="n" id="tC"></td><td class="noprint"></td></tr></tfoot>
+ </table></div>
+ <div class="btns">
+  <button id="add">Add Ingredient</button>
+  <button id="rem" class="ghost">Remove Ingredient</button>
+  <button id="calc" class="alt">Calculate</button>
+  <button id="sample" class="ghost">Load Sample Recipe</button>
+  <button id="reset" class="ghost">Reset</button>
+  <button id="print" class="ghost">Print</button>
+  <button id="csv" class="ghost">Export CSV</button>
+ </div>
+ <p class="hint">Enter the required measurement in grams and the per kg rate; the cost is calculated automatically. “Remove Ingredient” deletes the last row; ✕ deletes that row.</p>
+</section>
+
+<section aria-labelledby="h-sum">
+ <h2 id="h-sum">Summary</h2>
+ <div class="cards" id="cards"></div>
+ <ul class="formulas">
+    <li>Ingredient cost = (required g ÷ 1000) × rate per kg</li>
+  <li>Gross rate = blended rate per kg × gross weight (kg)</li>
+  <li>Finished weight = total weight × (1 − loss%) · Products = finished weight ÷ weight per product (whole units)</li>
+  <li>Total production cost = ingredients + (packaging × products) + other expenses</li>
+ </ul>
+</section>
+</main>
+<style>.sr{position:absolute;left:-9999px}</style>
+
+<script>
+"use strict";
+/* ---------- Data ---------- */
+const KEY = "narayani_calc_v1";
+const SAMPLE = () => ({
+  name: "Sample Masala Blend",
+  fin: 100, loss: 0, pkg: 0, other: 0,
+  rows: [
+    {n:"Coriander", w:400, r:180}, {n:"Chilli", w:250, r:240},
+    {n:"Cumin", w:150, r:450}, {n:"Pepper", w:100, r:700}, {n:"Turmeric", w:100, r:160}
+  ]
+});
+let S = load() || SAMPLE();
+let last = null; // last computed result (used by CSV)
+
+/* ---------- Helpers ---------- */
+const $ = id => document.getElementById(id);
+const inr = new Intl.NumberFormat("en-IN", {style:"currency", currency:"INR", minimumFractionDigits:2, maximumFractionDigits:2});
+const num = new Intl.NumberFormat("en-IN", {maximumFractionDigits:2});
+const money = v => inr.format(v);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let errors = new Set();
+
+/* Safe numeric read: empty -> 0, negative/invalid -> flagged and treated as 0 */
+function val(el, label, max) {
+  const raw = String(el.value).trim();
+  let v = raw === "" ? 0 : Number(raw), bad = false;
+  if (!isFinite(v) || v < 0) { v = 0; bad = true; }
+  if (max !== undefined && v > max) { v = max; bad = true; }
+  el.classList.toggle("bad", bad);
+  el.setAttribute("aria-invalid", bad);
+  if (bad) errors.add(label + (max !== undefined ? " must be between 0 and " + max : " cannot be negative or invalid"));
+  return v;
+}
+
+/* ---------- Storage ---------- */
+function load() { try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; } }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+/* ---------- Rendering ---------- */
+function renderRows() {
+  $("rows").innerHTML = S.rows.map((r, i) => `<tr data-i="${i}">
+    <td class="sn">${i + 1}</td>
+    <td><input type="text" class="n-in" value="${esc(r.n)}" aria-label="Ingredient name, row ${i + 1}" placeholder="Ingredient"></td>
+    <td class="n"><input type="number" class="w-in" min="0" step="any" value="${r.w}" aria-label="Required measurement in grams, row ${i + 1}"></td>
+    <td class="n"><input type="number" class="r-in" min="0" step="any" value="${r.r}" aria-label="Per KG rate in rupees, row ${i + 1}"></td>
+    <td class="n cost"></td>
+    <td class="noprint"><button class="x" data-del="${i}" aria-label="Remove row ${i + 1}">✕</button></td></tr>`).join("");
+}
+
+function fillInputs() {
+  $("name").value = S.name;
+  $("fin").value = S.fin; $("loss").value = S.loss; $("pkg").value = S.pkg; $("other").value = S.other;
+}
+
+/* ---------- Core calculation ---------- */
+function update() {
+  errors = new Set();
+  S.name = $("name").value;
+  S.fin = val($("fin"), "Finished weight per product");
+  S.loss = val($("loss"), "Processing loss", 100);
+  S.pkg = val($("pkg"), "Packaging cost per product");
+  S.other = val($("other"), "Other production expenses");
+
+  let totalW = 0, totalC = 0, items = [];
+  document.querySelectorAll("#rows tr").forEach((tr, i) => {
+    const row = S.rows[i];
+    row.n = tr.querySelector(".n-in").value;
+    row.w = val(tr.querySelector(".w-in"), `Row ${i + 1} required measurement`);
+    row.r = val(tr.querySelector(".r-in"), `Row ${i + 1} rate`);
+    const req = row.w;                        // required measurement (g), entered directly
+    const cost = (req / 1000) * row.r;        // Formula C
+    tr.querySelector(".sn").textContent = i + 1;
+    tr.querySelector(".cost").textContent = money(cost);
+    totalW += req; totalC += cost;            // Formulas D, E
+    items.push({n: row.n, w: row.w, req, r: row.r, cost});
+  });
+
+  const grossKg = totalW / 1000;
+  const blended = grossKg > 0 ? totalC / grossKg : 0;
+  const grossRate = blended * grossKg;                       // Formula A
+  const finished = totalW * (1 - S.loss / 100);
+  const products = S.fin > 0 ? Math.floor(finished / S.fin + 1e-9) : 0;   // Formula F
+  const remaining = S.fin > 0 ? Math.max(0, finished - products * S.fin) : finished;
+  const pkgTotal = S.pkg * products;
+  const totalCost = totalC + pkgTotal + S.other;
+  const perProduct = products > 0 ? totalCost / products : null;
+
+  $("tW").textContent = num.format(totalW) + " g";
+  $("tC").textContent = money(totalC);
+  $("tR").textContent = money(blended) + " /kg";   // blended per KG rate = total cost ÷ total kg
+  const prodPerKg = grossKg > 0 ? totalCost / grossKg : 0;
+
+  last = {items, totalW, grossKg, totalC, grossRate, finished, products, remaining, pkgTotal, other: S.other, totalCost, perProduct};
+  const cards = [
+    ["Total Ingredient Weight (g)", num.format(totalW) + " g"],
+    ["Total Ingredient Weight (kg)", num.format(grossKg) + " kg"],
+    ["Total Ingredient Cost (₹)", money(totalC)],
+    ["Ingredient Rate per KG (₹)", money(blended) + " /kg"],
+    ["Gross Weight (kg)", num.format(grossKg) + " kg"],
+    ["Gross Ingredient Rate (₹)", money(grossRate)],
+    ["Estimated Finished Weight (g)", num.format(finished) + " g"],
+    ["Number of Complete Products", String(products)],
+    ["Remaining Weight (g)", num.format(remaining) + " g"],
+    ["Packaging Cost Total (₹)", money(pkgTotal)],
+    ["Other Production Expenses (₹)", money(S.other)],
+    ["Total Production Cost (₹)", money(totalCost), 1],
+    ["Production Cost per KG (₹)", money(prodPerKg) + " /kg", 1],
+    ["Production Cost per Product (₹)", perProduct === null ? "N/A" : money(perProduct), 1]
+  ];
+  $("cards").innerHTML = cards.map(c => `<div class="card${c[2] ? " hi" : ""}"><div class="k">${c[0]}</div><div class="v">${c[1]}</div></div>`).join("");
+  last.cards = cards;
+
+  $("err").textContent = errors.size ? "Please fix: " + [...errors].join("; ") + ". Invalid values are treated as 0." : "";
+  save();
+}
+
+/* ---------- Actions ---------- */
+function addRow() { syncRows(); S.rows.push({n:"", w:0, r:0}); renderRows(); update(); const l = document.querySelectorAll(".n-in"); l[l.length - 1].focus(); }
+function syncRows() { document.querySelectorAll("#rows tr").forEach((tr, i) => { S.rows[i].n = tr.querySelector(".n-in").value; S.rows[i].w = tr.querySelector(".w-in").value; S.rows[i].r = tr.querySelector(".r-in").value; }); }
+function delRow(i) { syncRows(); S.rows.splice(i, 1); renderRows(); update(); }   // S.No. renumbers on re-render
+function loadSample(msg) { if (confirm(msg)) { S = SAMPLE(); fillInputs(); renderRows(); update(); } }
+
+function exportCSV() {
+  update();
+  const q = v => '"' + String(v).replace(/"/g, '""') + '"';
+  const lines = [["NARAYANI HOME FOODS"], ["Recipe", S.name], [],
+    ["S.No.", "Ingredients", "Required Measurement (g)", "Per KG Rate (INR)", "Required Ingredient Cost (INR)"]];
+  last.items.forEach((x, i) => lines.push([i + 1, x.n, +x.req.toFixed(4), x.r, x.cost.toFixed(2)]));
+  lines.push([], ["Summary", "Value"]);
+  last.cards.forEach(c => lines.push([c[0], c[1].replace(/₹/g, "INR ").replace(/\s+/g, " ").trim()]));
+  const blob = new Blob(["\ufeff" + lines.map(l => l.map(q).join(",")).join("\r\n")], {type: "text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = (S.name || "recipe").replace(/[^\w\-]+/g, "_") + "_costing.csv";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/* ---------- Events ---------- */
+document.addEventListener("input", e => { if (e.target.matches("input")) update(); });
+$("rows").addEventListener("click", e => { const b = e.target.closest("[data-del]"); if (b) delRow(+b.dataset.del); });
+$("add").onclick = addRow;
+$("rem").onclick = () => { if (S.rows.length) delRow(S.rows.length - 1); };
+$("calc").onclick = update;
+$("sample").onclick = () => loadSample("Replace the current recipe with the sample recipe?");
+$("reset").onclick = () => loadSample("Reset everything and restore the sample recipe?");
+$("print").onclick = () => { update(); window.print(); };
+$("csv").onclick = exportCSV;
+
+/* ---------- Init ---------- */
+fillInputs(); renderRows(); update();
+</script>
+</body>
+</html>
